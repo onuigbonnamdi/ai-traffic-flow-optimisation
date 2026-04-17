@@ -289,7 +289,7 @@ with tab3:
         c = colours.get(val, "#666")
         return f"background-color: {c}; color: white; border-radius: 4px;"
 
-    styled = df.style.applymap(style_level, subset=["Traffic Level"])
+    styled = df.style.map(style_level, subset=["Traffic Level"])
     st.dataframe(styled, use_container_width=True, height=500)
 
     # Summary bar
