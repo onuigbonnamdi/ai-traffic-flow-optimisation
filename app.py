@@ -161,7 +161,7 @@ with st.sidebar:
     st.subheader("📂 Dataset")
     uploaded = st.file_uploader(
         "Upload dataset (optional)",
-        type=["mat", "txt", ""],
+        type=None,
         help="Accepts: PEMS_train / PEMS_test (plain text) or a .mat file"
     )
     if not uploaded:
@@ -175,8 +175,7 @@ with st.sidebar:
 
     st.markdown("---")
     st.subheader("📡 Sensor Selection")
-    n_sensors_loaded = data.shape[1] if 'data' in dir() else 36
-    sensor_idx = st.slider("Sensor to visualise", 0, max(n_sensors_loaded - 1, 35), 0)
+    sensor_idx = st.slider("Sensor to visualise", 0, 35, 0)
 
     st.markdown("---")
     st.caption("**Author:** Nnamdi Onuigbo  \nAI Systems Engineer | SmartFlow Systems")
@@ -206,6 +205,9 @@ else:
 # Normalise to [0,1] if not already
 if data.max() > 1.5:
     data = (data - data.min()) / (data.max() - data.min() + 1e-9)
+
+# Clamp sensor index to actual data
+sensor_idx = min(sensor_idx, data.shape[1] - 1)
 
 # ── Header ────────────────────────────────────────────────────────────────────
 st.title("🚦 AI Traffic Flow Prediction & Signal Optimisation")
