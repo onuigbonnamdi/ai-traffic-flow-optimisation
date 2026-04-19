@@ -69,18 +69,28 @@ def load_mat_data(file_bytes):
 
 @st.cache_data(show_spinner=False)
 def load_pems_data(file_bytes):
-    """Parse PEMS-SF plain text file (space-separated floats, one row per record)."""
+    """Parse PEMS-SF plain text file (space or semicolon separated floats)."""
+    import re
     text = file_bytes.decode("utf-8")
     rows = []
     for line in text.strip().splitlines():
         line = line.strip().lstrip("[").rstrip("]")
         if not line:
             continue
-        vals = [float(v) for v in line.split() if v]
+        # Split on any combination of spaces, semicolons, commas
+        tokens = re.split(r'[\s;,]+', line)
+        vals = []
+        for t in tokens:
+            t = t.strip()
+            if t:
+                try:
+                    vals.append(float(t))
+                except ValueError:
+                    pass
         if vals:
             rows.append(vals)
     data = np.array(rows, dtype=float)
-    if data.shape[1] > data.shape[0]:
+    if data.ndim == 2 and data.shape[1] > data.shape[0]:
         data = data.T
     return data
 
