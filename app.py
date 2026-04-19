@@ -68,6 +68,24 @@ def load_mat_data(file_bytes):
 
 
 @st.cache_data(show_spinner=False)
+def load_pems_data(file_bytes):
+    """Parse PEMS-SF plain text file (space-separated floats, one row per record)."""
+    text = file_bytes.decode("utf-8")
+    rows = []
+    for line in text.strip().splitlines():
+        line = line.strip().lstrip("[").rstrip("]")
+        if not line:
+            continue
+        vals = [float(v) for v in line.split() if v]
+        if vals:
+            rows.append(vals)
+    data = np.array(rows, dtype=float)
+    if data.shape[1] > data.shape[0]:
+        data = data.T
+    return data
+
+
+@st.cache_data(show_spinner=False)
 def generate_synthetic_data(n_sensors=36, n_timesteps=2016, seed=42):
     """Fallback synthetic dataset mimicking the UCI traffic dataset statistics."""
     rng = np.random.default_rng(seed)
@@ -132,9 +150,9 @@ with st.sidebar:
 
     st.subheader("📂 Dataset")
     uploaded = st.file_uploader(
-        "Upload UCI .mat file (optional)",
-        type=["mat"],
-        help="traffic_flow_forecasting.mat from UCI ML Repository"
+        "Upload dataset (optional)",
+        type=["mat", "txt", ""],
+        help="Accepts: PEMS_train / PEMS_test (plain text) or a .mat file"
     )
     if not uploaded:
         st.info("No file uploaded — using synthetic dataset that mirrors UCI statistics.")
@@ -147,7 +165,8 @@ with st.sidebar:
 
     st.markdown("---")
     st.subheader("📡 Sensor Selection")
-    sensor_idx = st.slider("Sensor to visualise", 0, 35, 0)
+    n_sensors_loaded = data.shape[1] if 'data' in dir() else 36
+    sensor_idx = st.slider("Sensor to visualise", 0, max(n_sensors_loaded - 1, 35), 0)
 
     st.markdown("---")
     st.caption("**Author:** Nnamdi Onuigbo  \nAI Systems Engineer | SmartFlow Systems")
@@ -156,8 +175,16 @@ with st.sidebar:
 # ── Load data ─────────────────────────────────────────────────────────────────
 if uploaded:
     try:
-        data = load_mat_data(uploaded.read())
-        data_source = f"UCI .mat — shape {data.shape}"
+        fname = uploaded.name.lower()
+        raw = uploaded.read()
+        if fname.endswith(".mat"):
+            data = load_mat_data(raw)
+            data_source = f"UCI .mat — shape {data.shape}"
+        else:
+            # PEMS plain text file
+            data = load_pems_data(raw)
+            n_sensors = data.shape[1]
+            data_source = f"PEMS dataset — {data.shape[0]} records × {n_sensors} sensors"
     except Exception as e:
         st.error(f"Could not load file: {e}")
         data = generate_synthetic_data()
